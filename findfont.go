@@ -32,14 +32,15 @@ func List() (filePaths []string) {
 
 	walkF := func(path string, info os.FileInfo, err error) error {
 		if err == nil {
-			if info.IsDir() == false && strings.HasSuffix(strings.ToLower(path), ".ttf") {
+			lowerPath := strings.ToLower(path)
+			if !info.IsDir() && (strings.HasSuffix(lowerPath, ".ttf") || strings.HasSuffix(lowerPath, ".ttc") || strings.HasSuffix(lowerPath, ".otf")) {
 				pathList = append(pathList, path)
 			}
 		}
 		return nil
 	}
 	for _, dir := range getFontDirectories() {
-		filepath.Walk(dir, walkF)
+		_ = filepath.Walk(dir, walkF)
 	}
 
 	return pathList
@@ -77,7 +78,7 @@ func find(needle string) (filePath string, err error) {
 
 		lowerPath := strings.ToLower(info.Name())
 
-		if info.IsDir() == false && strings.HasSuffix(lowerPath, ".ttf") {
+		if !info.IsDir() && (strings.HasSuffix(lowerPath, ".ttf") || strings.HasSuffix(lowerPath, ".ttc") || strings.HasSuffix(lowerPath, ".otf")) {
 			lowerBase := stripExtension(lowerPath)
 			if lowerPath == lowerNeedle {
 				// exact match
@@ -95,7 +96,7 @@ func find(needle string) (filePath string, err error) {
 	}
 
 	for _, dir := range getFontDirectories() {
-		filepath.Walk(dir, walkF)
+		_ = filepath.Walk(dir, walkF)
 		if match != "" {
 			return match, nil
 		}
