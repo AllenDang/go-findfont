@@ -1,4 +1,6 @@
 // +build dragonfly freebsd linux nacl netbsd openbsd solaris
+//go:build dragonfly || freebsd || linux || nacl || netbsd || openbsd || solaris
+// +build dragonfly freebsd linux nacl netbsd openbsd solaris
 
 // Copyright 2016 Florian Pigorsch. All rights reserved.
 //
@@ -11,6 +13,17 @@ import (
 	"os"
 	"path/filepath"
 )
+
+var unixSystemFontGlobs = []string{
+	"/nix/store/*/share/fonts/truetype",
+	"/nix/store/*/share/fonts/opentype",
+}
+
+var unixSystemFontPaths = []string{
+	"/usr/share/fonts/",
+	"/usr/share/fonts/truetype/",
+	"/usr/share/fonts/opentype/",
+}
 
 func getFontDirectories() (paths []string) {
 	directories := getUserFontDirs()
@@ -28,9 +41,31 @@ func getUserFontDirs() (paths []string) {
 func getSystemFontDirs() (paths []string) {
 	if dataPaths := os.Getenv("XDG_DATA_DIRS"); dataPaths != "" {
 		for _, dataPath := range filepath.SplitList(dataPaths) {
-			paths = append(paths, filepath.Join(expandUser(dataPath), "fonts"))
+			dir := filepath.Join(expandUser(dataPath), "fonts")
+			if _, err := os.Stat(dir); err == nil {
+				paths = append(paths, dir)
+			}
+			dir = filepath.Join(dir, "truetype")
+			if _, err := os.Stat(dir); err == nil {
+				paths = append(paths, dir)
+			}
+			dir = filepath.Join(dir, "opentype")
+			if _, err := os.Stat(dir); err == nil {
+				paths = append(paths, dir)
+			}
 		}
-		return paths
 	}
-	return []string{"/usr/local/share/fonts/", "/usr/share/fonts/"}
+
+	paths = append(paths, "/usr/local/share/fonts/", "/usr/share/fonts/")
+
+	if _, err := os.Stat("/nix/store"); err == nil {
+		for _, glob := range unixSystemFontGlobs {
+			res, _ := filepath.Glob(glob)
+			if len(res) > 0 {
+				paths = append(paths, res...)
+			}
+		}
+	}
+
+	return paths
 }
